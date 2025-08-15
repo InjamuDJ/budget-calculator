@@ -12,9 +12,36 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+
+        /* Add a custom style for better checkbox appearance */
+        .form-checkbox {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #D1D5DB;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .form-checkbox:checked {
+            background-color: #3B82F6;
+            border-color: #3B82F6;
+        }
+
+        .form-checkbox:checked::before {
+            content: '✓';
+            display: block;
+            color: white;
+            font-size: 0.875rem;
+            line-height: 1;
+            text-align: center;
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
     <!-- The main container for the application -->
     <div id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-4xl w-full mx-auto border border-gray-200">
         <!-- Main header for the application -->
@@ -31,6 +58,7 @@
                             <th class="py-3 px-6 text-left">Category</th>
                             <th class="py-3 px-6 text-left">Eligible</th>
                             <th class="py-3 px-6 text-center">Base Allocation %</th>
+                            <th class="py-3 px-6 text-right">Base Amount (KES)</th>
                             <th class="py-3 px-6 text-center">Winner?</th>
                             <th class="py-3 px-6 text-right">Redistributed Amount (KES)</th>
                         </tr>
@@ -40,34 +68,13 @@
                     </tbody>
                     <tfoot>
                         <tr class="bg-gray-100 font-bold text-gray-800">
-                            <td class="py-3 px-6 text-left" colspan="4">Total</td>
+                            <td class="py-3 px-6 text-left" colspan="5">Total</td>
                             <td class="py-3 px-6 text-right" id="total-amount">2,350</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         </div>
-
-        <!-- New section for explaining the budget redistribution formula -->
-        <div class="p-6 sm:p-8 rounded-xl border border-gray-300 bg-gray-50">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">How It Works</h2>
-            <p class="text-gray-600 leading-relaxed mb-4">
-                This tool automatically redistributes the total budget of **KES 2,350** across the winning categories. The redistribution is based on the original percentage allocation of each category.
-            </p>
-            <h3 class="text-xl font-medium text-gray-700 mb-2">The Formula:</h3>
-            <p class="text-gray-600 mb-4">
-                When you check a category as a winner, the tool does the following:
-            </p>
-            <ol class="list-decimal list-inside text-gray-600 space-y-2">
-                <li>It sums the base percentages of all the selected winning categories. This becomes the "Remaining Total %".</li>
-                <li>For each winning category, it calculates a new percentage by dividing the category's original percentage by the "Remaining Total %".</li>
-                <li>Finally, it multiplies this new percentage by the total budget of **KES 2,350** to get the redistributed amount.</li>
-            </ol>
-            <p class="mt-4 text-gray-600">
-                This ensures that the entire budget is always allocated, regardless of how many winners you select.
-            </p>
-        </div>
-
     </div>
 
     <!-- The JavaScript logic to handle the calculations -->
@@ -76,11 +83,11 @@
         const totalBudget = 2350;
         const categories = [
             { id: 'top-performer', name: 'Top Performer', eligible: 'Agents', allocation: 40 },
-            { id: 'most-improved', name: 'Most Improved', eligible: 'Agents', allocation: 30 },
-            { id: 'shoutout', name: 'Personal Shoutout from Client', eligible: 'Agents', allocation: 20 },
-            { id: 'games-winner', name: 'Games Winner', eligible: 'Agents & TL', allocation: 10 }
+            { id: 'most-improved', name: 'Most Improved', eligible: 'Agents', allocation: 27 },
+            { id: 'shoutout', name: 'Personal Shoutout from Client', eligible: 'Agents', allocation: 18 },
+            { id: 'games-winner', name: 'Games Winner', eligible: 'Agents & TL', allocation: 15 }
         ];
-
+        
         const tableBody = document.getElementById('budget-table-body');
         const totalAmountElement = document.getElementById('total-amount');
 
@@ -88,23 +95,28 @@
          * Renders the initial table rows and sets up event listeners.
          */
         function initializeTable() {
-            tableBody.innerHTML = '';
-            categories.forEach(category => {
-                const row = document.createElement('tr');
-                row.classList.add('border-b', 'border-gray-200', 'hover:bg-gray-100');
-                row.innerHTML = `
-                    <td class="py-3 px-6 text-left whitespace-nowrap">${category.name}</td>
-                    <td class="py-3 px-6 text-left">${category.eligible}</td>
-                    <td class="py-3 px-6 text-center">${category.allocation}%</td>
-                    <td class="py-3 px-6 text-center">
-                        <input type="checkbox" id="${category.id}" data-allocation="${category.allocation}" class="form-checkbox h-5 w-5 text-blue-600 rounded-md cursor-pointer transition-transform duration-200 transform hover:scale-110">
-                    </td>
-                    <td class="py-3 px-6 text-right text-base font-medium" id="amount-${category.id}">
-                        ${(totalBudget * (category.allocation / 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
+            const rowsHtml = categories.map(category => {
+                const baseAmount = totalBudget * (category.allocation / 100);
+                return `
+                    <tr class="border-b border-gray-200 hover:bg-gray-100">
+                        <td class="py-3 px-6 text-left whitespace-nowrap">${category.name}</td>
+                        <td class="py-3 px-6 text-left">${category.eligible}</td>
+                        <td class="py-3 px-6 text-center">${category.allocation}%</td>
+                        <td class="py-3 px-6 text-right">${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                        <td class="py-3 px-6 text-center">
+                            <input type="checkbox" id="${category.id}" data-allocation="${category.allocation}" class="form-checkbox">
+                        </td>
+                        <td class="py-3 px-6 text-right text-base font-medium" id="amount-${category.id}">
+                            ${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </td>
+                    </tr>
                 `;
-                tableBody.appendChild(row);
-            });
+            }).join('');
+            
+            tableBody.innerHTML = rowsHtml;
+            
+            // Set initial total amount
+            totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
             // Add event listener to each checkbox
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -128,9 +140,10 @@
             if (totalCheckedAllocation === 0) {
                 categories.forEach(category => {
                     const amountElement = document.getElementById(`amount-${category.id}`);
-                    amountElement.textContent = (totalBudget * (category.allocation / 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const baseAmount = totalBudget * (category.allocation / 100);
+                    amountElement.textContent = baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                 });
-                totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                 return;
             }
 
@@ -143,16 +156,16 @@
                 if (checkbox.checked) {
                     // Redistribution formula: (category_allocation / total_checked_allocation) * total_budget
                     const newAmount = (category.allocation / totalCheckedAllocation) * totalBudget;
-                    amountElement.textContent = newAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    amountElement.textContent = newAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                     newTotal += newAmount;
                 } else {
                     // If the category is not a winner, its amount is 0
-                    amountElement.textContent = "0.00";
+                    amountElement.textContent = "0";
                 }
             });
 
             // Update the total at the bottom of the table
-            totalAmountElement.textContent = newTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            totalAmountElement.textContent = newTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
         // Initialize the table on page load
