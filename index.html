@@ -39,6 +39,39 @@
             line-height: 1;
             text-align: center;
         }
+
+        /*
+        * A responsive table layout for smaller screens.
+        * The table cells will stack vertically instead of side-by-side.
+        */
+        @media (max-width: 640px) {
+            .responsive-table tr {
+                display: flex;
+                flex-direction: column;
+                border-bottom: 2px solid #E5E7EB;
+                margin-bottom: 1rem;
+            }
+
+            .responsive-table thead {
+                display: none;
+            }
+
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+                border: none;
+            }
+
+            .responsive-table td:before {
+                content: attr(data-label);
+                font-weight: bold;
+                text-transform: uppercase;
+                margin-right: 1rem;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -51,8 +84,8 @@
         <!-- Base Budget and Category Table -->
         <div class="mb-8">
             <h2 class="text-2xl font-semibold mb-4 text-gray-700">Base Budget Split (KES 2,350)</h2>
-            <div class="overflow-x-auto rounded-xl border border-gray-300">
-                <table class="w-full text-left table-auto">
+            <div class="overflow-hidden rounded-xl border border-gray-300">
+                <table class="w-full text-left table-auto responsive-table">
                     <thead>
                         <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
                             <th class="py-3 px-6 text-left">Category</th>
@@ -99,14 +132,14 @@
                 const baseAmount = totalBudget * (category.allocation / 100);
                 return `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
-                        <td class="py-3 px-6 text-left whitespace-nowrap">${category.name}</td>
-                        <td class="py-3 px-6 text-left">${category.eligible}</td>
-                        <td class="py-3 px-6 text-center">${category.allocation}%</td>
-                        <td class="py-3 px-6 text-right">${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                        <td class="py-3 px-6 text-center">
+                        <td class="py-3 px-6 text-left whitespace-nowrap" data-label="Category">${category.name}</td>
+                        <td class="py-3 px-6 text-left" data-label="Eligible">${category.eligible}</td>
+                        <td class="py-3 px-6 text-center" data-label="Allocation %">${category.allocation}%</td>
+                        <td class="py-3 px-6 text-right" data-label="Base Amount">${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                        <td class="py-3 px-6 text-center" data-label="Winner?">
                             <input type="checkbox" id="${category.id}" data-allocation="${category.allocation}" class="form-checkbox">
                         </td>
-                        <td class="py-3 px-6 text-right text-base font-medium" id="amount-${category.id}">
+                        <td class="py-3 px-6 text-right text-base font-medium" data-label="Redistributed Amount" id="amount-${category.id}">
                             ${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </td>
                     </tr>
