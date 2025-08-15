@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Incentive Budget Calculator</title>
+    <!-- Use Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font for a clean look */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <!-- The main container for the application -->
+    <div id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-4xl w-full mx-auto border border-gray-200 hidden">
+        <!-- Main header for the application -->
+        <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-6">Performance Incentive Budget Calculator</h1>
+        <p class="text-center text-gray-600 mb-8">Mark a category as a winner to see the budget amounts automatically redistribute.</p>
+
+        <!-- Base Budget and Category Table -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Base Budget Split (KES 2,350)</h2>
+            <div class="overflow-x-auto rounded-xl border border-gray-300">
+                <table class="w-full text-left table-auto">
+                    <thead>
+                        <tr class="bg-gray-200 text-gray-600 uppercase text-sm leading-normal">
+                            <th class="py-3 px-6 text-left">Category</th>
+                            <th class="py-3 px-6 text-left">Eligible</th>
+                            <th class="py-3 px-6 text-center">Base Allocation %</th>
+                            <th class="py-3 px-6 text-center">Winner?</th>
+                            <th class="py-3 px-6 text-right">Redistributed Amount (KES)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600 text-sm font-light" id="budget-table-body">
+                        <!-- Table rows will be populated here by JavaScript -->
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-gray-100 font-bold text-gray-800">
+                            <td class="py-3 px-6 text-left" colspan="4">Total</td>
+                            <td class="py-3 px-6 text-right" id="total-amount">2,350</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- The JavaScript logic to handle the calculations and password protection -->
+    <script>
+        // Data for the budget categories and the total budget
+        const totalBudget = 2350;
+        const categories = [
+            { id: 'top-performer', name: 'Top Performer', eligible: 'Agents', allocation: 40 },
+            { id: 'most-improved', name: 'Most Improved', eligible: 'Agents', allocation: 30 },
+            { id: 'shoutout', name: 'Personal Shoutout from Client', eligible: 'Agents', allocation: 20 },
+            { id: 'games-winner', name: 'Games Winner', eligible: 'Agents & TL', allocation: 10 }
+        ];
+
+        const tableBody = document.getElementById('budget-table-body');
+        const totalAmountElement = document.getElementById('total-amount');
+        const appContainer = document.getElementById('app-container');
+
+        // Simple password protection
+        const password = "mysecretpassword"; // You can change this to whatever you like.
+
+        function promptForPassword() {
+            let enteredPassword = null;
+            // Loop until the correct password is entered or the user cancels
+            while (enteredPassword !== password && enteredPassword !== null) {
+                enteredPassword = prompt("Please enter the password to view this page.");
+            }
+
+            if (enteredPassword === password) {
+                appContainer.classList.remove('hidden'); // Show the app
+                initializeTable();
+            } else {
+                // Inform the user of a failed attempt and hide the app
+                alert("Incorrect password. Please try again.");
+            }
+        }
+
+        /**
+         * Renders the initial table rows and sets up event listeners.
+         */
+        function initializeTable() {
+            tableBody.innerHTML = '';
+            categories.forEach(category => {
+                const row = document.createElement('tr');
+                row.classList.add('border-b', 'border-gray-200', 'hover:bg-gray-100');
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${category.name}</td>
+                    <td class="py-3 px-6 text-left">${category.eligible}</td>
+                    <td class="py-3 px-6 text-center">${category.allocation}%</td>
+                    <td class="py-3 px-6 text-center">
+                        <input type="checkbox" id="${category.id}" data-allocation="${category.allocation}" class="form-checkbox h-5 w-5 text-blue-600 rounded-md cursor-pointer transition-transform duration-200 transform hover:scale-110">
+                    </td>
+                    <td class="py-3 px-6 text-right text-base font-medium" id="amount-${category.id}">
+                        ${(totalBudget * (category.allocation / 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Add event listener to each checkbox
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', updateAmounts);
+            });
+        }
+
+        /**
+         * Recalculates and updates the budget amounts based on the selected winners.
+         */
+        function updateAmounts() {
+            const checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
+            let totalCheckedAllocation = 0;
+
+            // Calculate the total allocation of all winning categories
+            checkedBoxes.forEach(checkbox => {
+                totalCheckedAllocation += parseFloat(checkbox.dataset.allocation);
+            });
+
+            // If no categories are selected, revert to base amounts
+            if (totalCheckedAllocation === 0) {
+                categories.forEach(category => {
+                    const amountElement = document.getElementById(`amount-${category.id}`);
+                    amountElement.textContent = (totalBudget * (category.allocation / 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                });
+                totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                return;
+            }
+
+            let newTotal = 0;
+            // Calculate and update the new redistributed amount for each category
+            categories.forEach(category => {
+                const checkbox = document.getElementById(category.id);
+                const amountElement = document.getElementById(`amount-${category.id}`);
+
+                if (checkbox.checked) {
+                    // Redistribution formula: (category_allocation / total_checked_allocation) * total_budget
+                    const newAmount = (category.allocation / totalCheckedAllocation) * totalBudget;
+                    amountElement.textContent = newAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    newTotal += newAmount;
+                } else {
+                    // If the category is not a winner, its amount is 0
+                    amountElement.textContent = "0.00";
+                }
+            });
+
+            // Update the total at the bottom of the table
+            totalAmountElement.textContent = newTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Prompt for password on page load
+        window.onload = promptForPassword;
+
+    </script>
+</body>
+</html>
