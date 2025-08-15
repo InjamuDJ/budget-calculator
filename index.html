@@ -16,7 +16,7 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen">
     <!-- The main container for the application -->
-    <div id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-4xl w-full mx-auto border border-gray-200 hidden">
+    <div id="app-container" class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl max-w-4xl w-full mx-auto border border-gray-200">
         <!-- Main header for the application -->
         <h1 class="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-6">Performance Incentive Budget Calculator</h1>
         <p class="text-center text-gray-600 mb-8">Mark a category as a winner to see the budget amounts automatically redistribute.</p>
@@ -63,25 +63,6 @@
         const tableBody = document.getElementById('budget-table-body');
         const totalAmountElement = document.getElementById('total-amount');
         const appContainer = document.getElementById('app-container');
-
-        // Simple password protection
-        const password = "mysecretpassword"; // You can change this to whatever you like.
-
-        function promptForPassword() {
-            let enteredPassword = null;
-            // Loop until the correct password is entered or the user cancels
-            while (enteredPassword !== password && enteredPassword !== null) {
-                enteredPassword = prompt("Please enter the password to view this page.");
-            }
-
-            if (enteredPassword === password) {
-                appContainer.classList.remove('hidden'); // Show the app
-                initializeTable();
-            } else {
-                // Inform the user of a failed attempt and hide the app
-                alert("Incorrect password. Please try again.");
-            }
-        }
 
         /**
          * Renders the initial table rows and sets up event listeners.
@@ -154,8 +135,8 @@
             totalAmountElement.textContent = newTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
-        // Prompt for password on page load
-        window.onload = promptForPassword;
+        // Initialize the table on page load
+        window.onload = initializeTable;
 
     </script>
 </body>
