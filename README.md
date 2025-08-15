@@ -1,4 +1,4 @@
-# budget-calculator
+# unit-allowance-budget-calculator
 Performance Incentive Budget Calculator
 
 This repository contains a simple, secure, and easy-to-use web-based calculator for managing a performance incentive budget. The tool helps you automatically redistribute funds among different categories based on which ones have a winner, removing the need for any manual math.
