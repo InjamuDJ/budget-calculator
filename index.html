@@ -50,7 +50,7 @@
 
         <!-- Base Budget and Category Table -->
         <div class="mb-8">
-            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Base Budget Split (KES 2,350)</h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-700">Base Budget Split (KES <span id="total-budget">2,350</span>)</h2>
             <div class="overflow-x-auto rounded-xl border border-gray-300">
                 <table class="w-full text-left table-auto">
                     <thead>
@@ -90,24 +90,56 @@
         
         const tableBody = document.getElementById('budget-table-body');
         const totalAmountElement = document.getElementById('total-amount');
+        const totalBudgetElement = document.getElementById('total-budget');
+        let baseAmounts = [];
 
         /**
-         * Renders the initial table rows and sets up event listeners.
+         * Rounds and adjusts amounts to ensure they sum to totalBudget
+         */
+        function adjustRounding(amounts, total) {
+            const rounded = amounts.map(a => Math.round(a));
+            const currentTotal = rounded.reduce((sum, val) => sum + val, 0);
+            const diff = total - currentTotal;
+            
+            if (diff !== 0) {
+                // Adjust the largest amount to compensate for rounding differences
+                const maxIndex = amounts.reduce((iMax, x, i, arr) => 
+                    x > arr[iMax] ? i : iMax, 0);
+                rounded[maxIndex] += diff;
+            }
+            return rounded;
+        }
+
+        /**
+         * Formats numbers with thousands separators
+         */
+        function formatNumber(num) {
+            return num.toLocaleString('en-US', { 
+                minimumFractionDigits: 0, 
+                maximumFractionDigits: 0 
+            });
+        }
+
+        /**
+         * Renders the initial table rows and sets up event listeners
          */
         function initializeTable() {
-            const rowsHtml = categories.map(category => {
-                const baseAmount = totalBudget * (category.allocation / 100);
+            // Calculate base amounts with rounding adjustment
+            const baseAmountsFloat = categories.map(c => totalBudget * (c.allocation / 100));
+            baseAmounts = adjustRounding(baseAmountsFloat, totalBudget);
+            
+            const rowsHtml = categories.map((category, index) => {
                 return `
                     <tr class="border-b border-gray-200 hover:bg-gray-100">
                         <td class="py-3 px-6 text-left whitespace-nowrap">${category.name}</td>
                         <td class="py-3 px-6 text-left">${category.eligible}</td>
                         <td class="py-3 px-6 text-center">${category.allocation}%</td>
-                        <td class="py-3 px-6 text-right">${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                        <td class="py-3 px-6 text-right">${formatNumber(baseAmounts[index])}</td>
                         <td class="py-3 px-6 text-center">
                             <input type="checkbox" id="${category.id}" data-allocation="${category.allocation}" class="form-checkbox">
                         </td>
                         <td class="py-3 px-6 text-right text-base font-medium" id="amount-${category.id}">
-                            ${baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            ${formatNumber(baseAmounts[index])}
                         </td>
                     </tr>
                 `;
@@ -115,8 +147,9 @@
             
             tableBody.innerHTML = rowsHtml;
             
-            // Set initial total amount
-            totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            // Set initial total amounts
+            totalAmountElement.textContent = formatNumber(totalBudget);
+            totalBudgetElement.textContent = formatNumber(totalBudget);
 
             // Add event listener to each checkbox
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
@@ -125,52 +158,49 @@
         }
 
         /**
-         * Recalculates and updates the budget amounts based on the selected winners.
+         * Recalculates and updates the budget amounts based on the selected winners
          */
         function updateAmounts() {
-            const checkedBoxes = document.querySelectorAll('input[type="checkbox"]:checked');
-            let totalCheckedAllocation = 0;
-
-            // Calculate the total allocation of all winning categories
-            checkedBoxes.forEach(checkbox => {
-                totalCheckedAllocation += parseFloat(checkbox.dataset.allocation);
-            });
+            const checkedBoxes = Array.from(
+                document.querySelectorAll('input[type="checkbox"]:checked')
+            );
+            
+            let totalCheckedAllocation = checkedBoxes.reduce((sum, checkbox) => 
+                sum + parseFloat(checkbox.dataset.allocation), 0);
 
             // If no categories are selected, revert to base amounts
-            if (totalCheckedAllocation === 0) {
-                categories.forEach(category => {
+            if (checkedBoxes.length === 0) {
+                categories.forEach((category, index) => {
                     const amountElement = document.getElementById(`amount-${category.id}`);
-                    const baseAmount = totalBudget * (category.allocation / 100);
-                    amountElement.textContent = baseAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                    amountElement.textContent = formatNumber(baseAmounts[index]);
                 });
-                totalAmountElement.textContent = totalBudget.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                totalAmountElement.textContent = formatNumber(totalBudget);
                 return;
             }
 
-            let newTotal = 0;
-            // Calculate and update the new redistributed amount for each category
-            categories.forEach(category => {
+            // Calculate new amounts for winners
+            const winnerAmounts = categories.map(category => {
                 const checkbox = document.getElementById(category.id);
-                const amountElement = document.getElementById(`amount-${category.id}`);
-
-                if (checkbox.checked) {
-                    // Redistribution formula: (category_allocation / total_checked_allocation) * total_budget
-                    const newAmount = (category.allocation / totalCheckedAllocation) * totalBudget;
-                    amountElement.textContent = newAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-                    newTotal += newAmount;
-                } else {
-                    // If the category is not a winner, its amount is 0
-                    amountElement.textContent = "0";
-                }
+                return checkbox.checked ? 
+                    (category.allocation / totalCheckedAllocation) * totalBudget : 
+                    0;
             });
 
-            // Update the total at the bottom of the table
-            totalAmountElement.textContent = newTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            // Adjust for rounding
+            const adjustedAmounts = adjustRounding(winnerAmounts, totalBudget);
+
+            // Update UI with new amounts
+            categories.forEach((category, index) => {
+                const amountElement = document.getElementById(`amount-${category.id}`);
+                amountElement.textContent = formatNumber(adjustedAmounts[index]);
+            });
+
+            // Update the total (should always be totalBudget)
+            totalAmountElement.textContent = formatNumber(totalBudget);
         }
 
         // Initialize the table on page load
-        window.onload = initializeTable;
-
+        window.addEventListener('DOMContentLoaded', initializeTable);
     </script>
 </body>
 </html>
